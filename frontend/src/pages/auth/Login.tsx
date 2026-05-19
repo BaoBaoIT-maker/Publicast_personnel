@@ -23,7 +23,7 @@ export default function Login() {
     try {
       const res = await dispatch(login({ email, password })).unwrap();
       if (res?.user) {
-        navigate('/profile');
+        navigate('/');
       }
     } catch (err: any) {
       let errorMsg = 'Login failed. Please try again.';
