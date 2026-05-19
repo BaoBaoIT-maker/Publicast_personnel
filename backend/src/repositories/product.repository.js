@@ -215,6 +215,73 @@ class ProductRepository {
 
     return product;
   }
+
+  /**
+   * Lấy sản phẩm bán chạy nhất (top 10)
+   */
+  async findBestsellers() {
+    return await prisma.product.findMany({
+      include: {
+        category: true,
+        images: {
+          orderBy: { order: 'asc' },
+          take: 1,
+        },
+      },
+      orderBy: { sold: 'desc' },
+      take: 10,
+    });
+  }
+
+  /**
+   * Lấy sản phẩm xem nhiều nhất (top 10)
+   */
+  async findMostViewed() {
+    return await prisma.product.findMany({
+      include: {
+        category: true,
+        images: {
+          orderBy: { order: 'asc' },
+          take: 1,
+        },
+      },
+      orderBy: { viewCount: 'desc' },
+      take: 10,
+    });
+  }
+
+  /**
+   * Lấy sản phẩm theo danh mục với phân trang (lazy loading)
+   */
+  async findProductsByCategory(categoryId, page = 1, limit = 12) {
+    const skip = (page - 1) * limit;
+
+    const products = await prisma.product.findMany({
+      where: { categoryId },
+      include: {
+        category: true,
+        images: {
+          orderBy: { order: 'asc' },
+          take: 1,
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const total = await prisma.product.count({ where: { categoryId } });
+
+    return {
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
 }
 
 module.exports = new ProductRepository();

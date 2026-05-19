@@ -109,6 +109,76 @@ class ProductController {
       });
     }
   }
+
+  /**
+   * GET /api/products/bestsellers
+   * Lấy 10 sản phẩm bán chạy nhất
+   */
+  async getBestsellers(req, res) {
+    try {
+      const products = await productRepository.findBestsellers();
+
+      res.status(200).json({
+        success: true,
+        message: 'Lấy sản phẩm bán chạy thành công',
+        data: products,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi lấy sản phẩm bán chạy',
+      });
+    }
+  }
+
+  /**
+   * GET /api/products/most-viewed
+   * Lấy 10 sản phẩm xem nhiều nhất
+   */
+  async getMostViewed(req, res) {
+    try {
+      const products = await productRepository.findMostViewed();
+
+      res.status(200).json({
+        success: true,
+        message: 'Lấy sản phẩm xem nhiều thành công',
+        data: products,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi lấy sản phẩm xem nhiều',
+      });
+    }
+  }
+
+  /**
+   * GET /api/categories/:categoryId/products
+   * Lấy sản phẩm theo danh mục (có phân trang - lazy loading)
+   */
+  async getProductsByCategory(req, res) {
+    try {
+      const { categoryId } = req.params;
+      const { page = 1, limit = 12 } = req.query;
+
+      const result = await productRepository.findProductsByCategory(
+        categoryId,
+        parseInt(page),
+        parseInt(limit)
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Lấy sản phẩm theo danh mục thành công',
+        ...result,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi lấy sản phẩm theo danh mục',
+      });
+    }
+  }
 }
 
 module.exports = new ProductController();

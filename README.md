@@ -44,7 +44,7 @@
 
 ---
 
-## Bài 4 
+## Bài 4
 
 ### Những file đã tạo:
 
@@ -74,4 +74,38 @@
 - Animations fade-in và hover effects
 - Responsive design cho mobile, tablet, desktop
 - Sửa CORS để accept http://localhost:5173
+
+---
+
+## Bài 5 - Hiển Thị Sản Phẩm Theo Danh Mục & Sản Phẩm Bán Chạy
+
+### Những file đã tạo:
+
+- `frontend/src/pages/category/CategoryPage.tsx` - Trang danh sách sản phẩm theo danh mục
+- `frontend/src/components/BestsellersCarousel.tsx` - Component hiển thị 10 sản phẩm bán chạy nhất
+- `frontend/src/components/MostViewedCarousel.tsx` - Component hiển thị 10 sản phẩm xem nhiều nhất
+
+### Những file đã cập nhật:
+
+- `backend/src/repositories/product.repository.js` - Thêm methods `findProductsByCategory`, `findBestsellers`, `findMostViewed`
+- `backend/src/controllers/product.controller.js` - Thêm endpoints `getProductsByCategory`, `getBestsellers`, `getMostViewed`
+- `backend/src/routes/product.routes.js` - Thêm routes `/categories/:categoryId/products`, `/products/bestsellers`, `/products/most-viewed`
+- `backend/prisma/schema.prisma` - Thêm field `viewCount` cho Product
+- `frontend/src/api/productAPI.ts` - Thêm functions `fetchProductsByCategory`, `fetchTopBestsellers`, `fetchTopMostViewed`
+- `frontend/src/pages/home/HomePage.tsx` - Thêm hai carousel sections
+
+### Những gì đã làm:
+
+- Lấy danh sách sản phẩm theo danh mục từ database
+- Phân trang sản phẩm (12 sản phẩm/trang)
+- Lazy loading hoặc phân trang truyền thống khi kéo xuống cuối trang
+- Hiển thị danh mục sản phẩm
+- Lấy 10 sản phẩm bán chạy nhất (sorted by sold count)
+- Lấy 10 sản phẩm xem nhiều nhất (sorted by viewCount)
+- Hiển thị theo kiểu carousel chiều ngang (Swiper)
+- Phân trang theo chiều ngang (navigation buttons)
+- Responsive design
+- Loading state
+- Animation khi load
+
 ---
