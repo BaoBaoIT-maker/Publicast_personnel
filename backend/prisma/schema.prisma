@@ -63,6 +63,7 @@ model Product {
   stock         Int             @default(0)
   sold          Int             @default(0)
   rating        Float           @default(0)
+  viewCount     Int             @default(0) @map("view_count")
   categoryId    String          @map("category_id")
   isNew         Boolean         @default(true) @map("is_new")
   isBestseller  Boolean         @default(false) @map("is_bestseller")

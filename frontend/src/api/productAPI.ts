@@ -162,3 +162,46 @@ export const fetchPromotionProducts = async (limit = 8): Promise<ProductsRespons
     page: 1,
   });
 };
+
+/**
+ * Lấy 10 sản phẩm bán chạy nhất (top bestsellers)
+ */
+export const fetchTopBestsellers = async (): Promise<{ success: boolean; data: Product[] }> => {
+  try {
+    const response = await apiClient.get('/products/bestsellers');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Lỗi khi lấy sản phẩm bán chạy');
+  }
+};
+
+/**
+ * Lấy 10 sản phẩm xem nhiều nhất (top most viewed)
+ */
+export const fetchTopMostViewed = async (): Promise<{ success: boolean; data: Product[] }> => {
+  try {
+    const response = await apiClient.get('/products/most-viewed');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Lỗi khi lấy sản phẩm xem nhiều');
+  }
+};
+
+/**
+ * Lấy sản phẩm theo danh mục (với phân trang - lazy loading)
+ */
+export const fetchProductsByCategory = async (
+  categoryId: string,
+  page = 1,
+  limit = 12
+): Promise<ProductsResponse> => {
+  try {
+    const response = await apiClient.get<ProductsResponse>(
+      `/categories/${categoryId}/products`,
+      { params: { page, limit } }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Lỗi khi lấy sản phẩm theo danh mục');
+  }
+};
