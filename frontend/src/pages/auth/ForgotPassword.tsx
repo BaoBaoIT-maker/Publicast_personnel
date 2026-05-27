@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import AuthLayout from '../../components/AuthLayout';
+import AuthLayout from '../../layout/AuthLayout';
 import FormInput from '../../components/ui/FormInput';
 import Button from '../../components/ui/Button';
 import { Link } from 'react-router-dom';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks';
-import { logout } from '../../features/auth/authSlice';
+import { logout } from '../../redux/authSlice';
 
 export default function Profile() {
   const dispatch = useAppDispatch();

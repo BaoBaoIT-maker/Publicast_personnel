@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, X } from 'lucide-react';
 import ProductCard from '../../components/ProductCard';
-import { fetchProducts, fetchCategories, Product, Category } from '../../api/productAPI';
+import { fetchProducts, fetchCategories, Product, Category } from '../../services/productAPI';
+import Layout from '../../layout/Layout';
 
 const SearchPage: React.FC = () => {
   const navigate = useNavigate();

@@ -6,19 +6,23 @@ import { Navigation, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import { fetchProductDetail, Product } from '../../api/productAPI';
+import { fetchProductDetail, Product } from '../../services/productAPI';
 import ProductCard from '../../components/ProductCard';
-import Layout from '../../components/Layout';
+import Layout from '../../layout/Layout';
+import { useAppDispatch } from '../../hooks';
+import { addToCart } from '../../redux/cartSlice';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   useEffect(() => {
     const loadProductDetail = async () => {
@@ -208,11 +212,22 @@ const ProductDetailPage: React.FC = () => {
             {/* Action Buttons */}
             <div className="flex gap-3">
               <button
-                disabled={product.stock === 0}
+                disabled={product.stock === 0 || addingToCart}
+                onClick={async () => {
+                  try {
+                    setAddingToCart(true);
+                    await dispatch(addToCart({ productId: product.id, quantity })).unwrap();
+                    alert('Đã thêm sản phẩm vào giỏ hàng!');
+                  } catch (error: any) {
+                    alert(error || 'Lỗi khi thêm vào giỏ hàng');
+                  } finally {
+                    setAddingToCart(false);
+                  }
+                }}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingCart size={20} />
-                Thêm vào giỏ hàng
+                {addingToCart ? 'Đang thêm...' : 'Thêm vào giỏ hàng'}
               </button>
               <button className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-6 rounded-lg font-bold flex items-center justify-center transition-colors">
                 <Heart size={20} />
