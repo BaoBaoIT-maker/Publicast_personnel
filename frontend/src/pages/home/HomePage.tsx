@@ -1,22 +1,37 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Sparkles } from 'lucide-react';
 import ProductCard from '../../components/ProductCard';
-import Layout from '../../components/Layout';
+import ProductCarousel from '../../components/ProductCarousel';
+import Layout from '../../layout/Layout';
 import {
   fetchProducts,
   fetchCategories,
+  fetchBestsellers,
+  fetchMostViewed,
   Product,
   Category,
-} from '../../api/productAPI';
+} from '../../services/productAPI';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const observerTarget = useRef<HTMLDivElement>(null);
 
+  // Main products list
   const [products, setProducts] = useState<Product[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Carousel products
+  const [bestsellers, setBestsellers] = useState<Product[]>([]);
+  const [mostViewed, setMostViewed] = useState<Product[]>([]);
+
+  // States
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [carouselLoading, setCarouselLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
   // Search & Filter states
@@ -24,9 +39,6 @@ const HomePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState('all');
   const [filterType, setFilterType] = useState('all');
-
-  // Lấy thông tin user từ localStorage
-  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
 
   // Load categories
   useEffect(() => {
@@ -41,11 +53,31 @@ const HomePage: React.FC = () => {
     loadCategories();
   }, []);
 
-  // Load products với filter
+  // Load bestsellers & most viewed (carousels)
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadCarousels = async () => {
       try {
-        setLoading(true);
+        setCarouselLoading(true);
+        const [bestsellersRes, mostViewedRes] = await Promise.all([
+          fetchBestsellers(),
+          fetchMostViewed(),
+        ]);
+        setBestsellers(bestsellersRes.data);
+        setMostViewed(mostViewedRes.data);
+      } catch (error) {
+        console.error('Error loading carousels:', error);
+      } finally {
+        setCarouselLoading(false);
+      }
+    };
+    loadCarousels();
+  }, []);
+
+  // Load main products list (with filter)
+  const loadProducts = useCallback(
+    async (pageNum: number, append = false) => {
+      try {
+        append ? setLoadingMore(true) : setLoading(true);
 
         // Convert price range to min/max
         let minPrice, maxPrice;
@@ -64,7 +96,7 @@ const HomePage: React.FC = () => {
 
         // Build filter params
         const params: any = {
-          page: 1,
+          page: pageNum,
           limit: 12,
           search: searchTerm || undefined,
           categoryId: selectedCategory || undefined,
@@ -76,25 +108,59 @@ const HomePage: React.FC = () => {
         };
 
         const response = await fetchProducts(params);
-        setProducts(response.data);
+        setTotalPages(response.pagination.pages);
+        setHasMore(pageNum < response.pagination.pages);
+
+        if (append) {
+          setProducts((prev) => [...prev, ...response.data]);
+        } else {
+          setProducts(response.data);
+        }
       } catch (error) {
         console.error('Error loading products:', error);
-        setProducts([]);
+        if (!append) setProducts([]);
       } finally {
-        setLoading(false);
+        append ? setLoadingMore(false) : setLoading(false);
+      }
+    },
+    [searchTerm, selectedCategory, priceRange, filterType]
+  );
+
+  // Load first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    loadProducts(1, false);
+  }, [searchTerm, selectedCategory, priceRange, filterType, loadProducts]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !loading &&
+          !loadingMore &&
+          currentPage < totalPages
+        ) {
+          const nextPage = currentPage + 1;
+          setCurrentPage(nextPage);
+          loadProducts(nextPage, true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
       }
     };
-
-    loadProducts();
-  }, [searchTerm, selectedCategory, priceRange, filterType]);
-
-  // Handle Logout
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userInfo');
-    navigate('/auth/login');
-  };
+  }, [currentPage, hasMore, loading, loadingMore, totalPages, loadProducts]);
 
   // Handle category click
   const handleCategoryClick = (categoryId: string) => {
@@ -104,6 +170,23 @@ const HomePage: React.FC = () => {
 
   return (
     <Layout>
+      {/* ===== CAROUSELS SECTION ===== */}
+      <div className="bg-slate-50">
+        <ProductCarousel
+          title="🔥 Bán Chạy Nhất"
+          products={bestsellers}
+          loading={carouselLoading}
+          itemsPerPage={5}
+        />
+        <div className="h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent"></div>
+        <ProductCarousel
+          title="👁️ Xem Nhiều Nhất"
+          products={mostViewed}
+          loading={carouselLoading}
+          itemsPerPage={5}
+        />
+      </div>
+
       {/* ===== SEARCH & FILTER SECTION ===== */}
       <section className="bg-gradient-to-r from-slate-900 to-slate-800 py-8 px-4 border-b border-amber-500/20">
         <div className="max-w-7xl mx-auto">
@@ -245,24 +328,30 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* ===== PRODUCTS SECTION ===== */}
+      {/* ===== PRODUCTS SECTION (WITH INFINITE SCROLL) ===== */}
       <section className="py-12 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Results Info */}
           <div className="mb-8 animate-fade-in">
             <div className="flex items-center gap-3 mb-2">
               <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-800 bg-clip-text text-transparent">
-                Bộ Sưu Tập Dây Nịt
+                Tất Cả Sản Phẩm
               </h2>
               <Sparkles className="w-6 h-6 text-amber-500" />
             </div>
             <p className="text-slate-600 text-lg">
-              Tìm thấy <span className="font-bold text-amber-600">{products.length}</span> sản phẩm
+              Đã tải <span className="font-bold text-amber-600">{products.length}</span> sản phẩm
+              {totalPages > 0 && (
+                <span>
+                  {' '}
+                  | Trang <span className="font-bold text-amber-600">{currentPage}</span> / {totalPages}
+                </span>
+              )}
             </p>
           </div>
 
-          {/* Loading State */}
-          {loading && (
+          {/* Loading State (first load) */}
+          {loading && products.length === 0 && (
             <div className="flex items-center justify-center py-24">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-amber-500/30 border-t-amber-500 mx-auto mb-4"></div>
@@ -272,7 +361,7 @@ const HomePage: React.FC = () => {
           )}
 
           {/* Products Grid */}
-          {!loading && products.length > 0 && (
+          {products.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {products.map((product, index) => (
                 <div key={product.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
@@ -300,6 +389,26 @@ const HomePage: React.FC = () => {
               >
                 Xóa Bộ Lọc
               </button>
+            </div>
+          )}
+
+          {/* Infinite Scroll Observer */}
+          {hasMore && <div ref={observerTarget} className="py-8 text-center" />}
+
+          {/* Loading More Indicator */}
+          {loadingMore && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-3 border-amber-500/30 border-t-amber-500 mx-auto mb-2"></div>
+                <p className="text-slate-600 text-sm">Đang tải thêm...</p>
+              </div>
+            </div>
+          )}
+
+          {/* End of list indicator */}
+          {!hasMore && products.length > 0 && (
+            <div className="text-center py-8">
+              <p className="text-slate-600 font-semibold">Đã tải hết tất cả sản phẩm</p>
             </div>
           )}
         </div>

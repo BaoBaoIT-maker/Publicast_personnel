@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import AuthLayout from '../../components/AuthLayout';
+import AuthLayout from '../../layout/AuthLayout';
 import FormInput from '../../components/ui/FormInput';
 import Button from '../../components/ui/Button';
 import { useAppDispatch } from '../../hooks';
-import { register } from '../../features/auth/authSlice';
+import { register } from '../../redux/authSlice';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Register() {

@@ -20,6 +20,7 @@ model User {
   updatedAt   DateTime      @updatedAt @map("updated_at")
   
   accounts    UserAccount[]
+  cart        Cart?
   reviews     Review[]
   orders      Order[]
 
@@ -73,6 +74,7 @@ model Product {
   
   category      Category        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   images        ProductImage[]
+  cartItems     CartItem[]
   reviews       Review[]
   orderItems    OrderItem[]
 
@@ -107,16 +109,55 @@ model Review {
 }
 
 // ===== ORDER MODELS =====
-model Order {
-  id         String      @id @default(uuid())
-  userId     String      @map("user_id")
-  totalPrice Float
-  status     OrderStatus @default(PENDING) @map("status")
-  createdAt  DateTime    @default(now()) @map("created_at")
-  updatedAt  DateTime    @updatedAt @map("updated_at")
+// ===== CART MODELS =====
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique @map("user_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
   
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items      OrderItem[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String   @map("cart_id")
+  productId String   @map("product_id")
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              String           @id @default(uuid())
+  userId          String           @map("user_id")
+  totalPrice      Float
+  status          OrderStatus      @default(NEW) @map("status")
+  paymentMethod   PaymentMethod    @default(COD) @map("payment_method")
+  shippingAddress String?          @map("shipping_address") @db.Text
+  phoneNumber     String?          @map("phone_number")
+  notes           String?          @db.Text
+  confirmedAt     DateTime?        @map("confirmed_at")
+  shippedAt       DateTime?        @map("shipped_at")
+  deliveredAt     DateTime?        @map("delivered_at")
+  cancelledAt     DateTime?        @map("cancelled_at")
+  cancellationReason String?       @map("cancellation_reason")
+  cancellationRequest Boolean      @default(false) @map("cancellation_request")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+  payment         Payment?
 
   @@map("orders")
 }
@@ -133,6 +174,38 @@ model OrderItem {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
+}
+
+// ===== PAYMENT MODELS =====
+model Payment {
+  id        String   @id @default(uuid())
+  orderId   String   @unique @map("order_id")
+  method    String   // COD, WALLET, CREDIT_CARD, etc.
+  amount    Float
+  status    String   @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED
+  reference String?  // Reference for payment gateway
+  paidAt    DateTime? @map("paid_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds   Refund[]
+
+  @@map("payments")
+}
+
+model Refund {
+  id        String   @id @default(uuid())
+  paymentId String   @map("payment_id")
+  amount    Float
+  reason    String   @db.Text
+  status    String   @default("PENDING") // PENDING, APPROVED, COMPLETED, REJECTED
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("refunds")
 }
 
 // ===== ENUMS =====
@@ -153,9 +226,18 @@ enum AuthProvider {
 }
 
 enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
+  NEW
+  CONFIRMED
+  PREPARING
+  SHIPPING
   DELIVERED
   CANCELLED
+  CANCELLATION_REQUESTED
+}
+
+enum PaymentMethod {
+  COD
+  WALLET
+  CREDIT_CARD
+  BANK_TRANSFER
 }

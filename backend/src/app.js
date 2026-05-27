@@ -8,6 +8,9 @@ dotenv.config();
 const authRoutes = require('./routes/auth.routes');
 const profileRoutes = require('./routes/profile.routes');
 const productRoutes = require('./routes/product.routes');
+const cartRoutes = require('./routes/cart.routes');
+const orderRoutes = require('./routes/order.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 const app = express();
 
@@ -26,6 +29,9 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api', profileRoutes);
 app.use('/api', productRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/', (req, res) => {
   res.send('PubliCast API is running');
